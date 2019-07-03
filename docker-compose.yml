@@ -7,8 +7,8 @@ services:
     ports:
       - ${NGINX_PORT}:8000
     volumes:
-      - ./docker/nginx/conf:/etc/nginx/conf.d
-      - ./docker/nginx/uwsgi_params:/etc/nginx/uwsgi_params
+      - ./nginx/conf:/etc/nginx/conf.d
+      - ./nginx/uwsgi_params:/etc/nginx/uwsgi_params
       - bot-static:/static
     depends_on:
       - python
@@ -26,24 +26,24 @@ services:
       - ${MYSQL_PORT}:3306
     volumes:
       - bot-db:/var/lib/mysql
-      - ./docker/mysql/sql:/docker-entrypoint-initdb.d
+      - ./mysql/sql:/docker-entrypoint-initdb.d
 
-  python:
+  app:
     image: searazazel/bot
     container_name: bot.app
     command: >
-      sh -c 'python run.py &
+      sh -c 'python manage.py migrate &
+      python run.py &
       uwsgi --socket :8001 --module bot.wsgi'
     volumes:
-      - bot-code:/code
-      - bot-static:/static
+      - bot-static:/code/static
     expose:
       - "8001"
     depends_on:
       - db
 
   # vuejs:
-  #   build: ./docker/vuejs
+  #   build: ./vuejs
   #   container_name: bot.vuejs
   #   command: >
   #     sh -c 'cd /app/bot/vuejs &&
@@ -54,13 +54,13 @@ services:
   #     #- ./src/bot/static/assets:/app/bot/vuejs/dist
   #     # - node-modules:/app/bot/vuejs/node_modules
 
-  phpmyadmin:
+  admin:
     image: phpmyadmin/phpmyadmin
     container_name: bot.admin
     environment:
       - PMA_ARBITRARY=1
       - PMA_HOSTS=db
-      - PMA_USER=${MYSQL_USER}
+      - PMA_USER=root
       - PMA_PASSWORD=${MYSQL_ROOT_PASSWORD}
     ports:
       - 8080:80
@@ -68,7 +68,7 @@ services:
 volumes:
   bot-db:
     driver: local
-  bot-code:
+  bot-static:
     driver: local
   # node-modules:
   #   driver: local
